@@ -1,10 +1,11 @@
-import java.awt.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 
 public class CalculatorApp {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            CalculatorModel model = new CalculatorModel();
+            CalculatorModel model = new CalculatorModel(); 
             CalculatorView view = new CalculatorView();
             new CalculatorController(model, view);
         });
@@ -35,7 +36,6 @@ class CalculatorModel {
         this.memory = 0;
     }
 
-    // Pure Java math expression parser (recursive descent)
     private double eval(String expr) {
         return new Object() {
             int pos = -1, ch;
@@ -63,7 +63,7 @@ class CalculatorModel {
             double parseExpression() {
                 double x = parseTerm();
                 while (true) {
-                    if      (eat('+')) x += parseTerm();
+                    if (eat('+')) x += parseTerm();
                     else if (eat('-')) x -= parseTerm();
                     else return x;
                 }
@@ -72,7 +72,7 @@ class CalculatorModel {
             double parseTerm() {
                 double x = parseFactor();
                 while (true) {
-                    if      (eat('*')) x *= parseFactor();
+                    if (eat('*')) x *= parseFactor();
                     else if (eat('/')) x /= parseFactor();
                     else return x;
                 }
@@ -91,7 +91,7 @@ class CalculatorModel {
                     while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
                     x = Double.parseDouble(expr.substring(startPos, this.pos));
                 } else {
-                    throw new RuntimeException("Unexpected character: " + (char)ch);
+                    throw new RuntimeException("Unexpected character: " + (char) ch);
                 }
 
                 return x;
@@ -115,33 +115,48 @@ class CalculatorView {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
+        Color background = Color.BLACK;
+        Color operatorColor = Color.YELLOW;
+        Color textColor = Color.WHITE;
+        Font font = new Font("Arial", Font.BOLD, 22);
+
         display = new JTextField();
-        display.setFont(new Font("Arial", Font.BOLD, 24));
+        display.setFont(new Font("Arial", Font.BOLD, 28));
         display.setHorizontalAlignment(JTextField.RIGHT);
+        display.setEditable(false);
+        display.setBackground(Color.DARK_GRAY);
+        display.setForeground(Color.WHITE);
         frame.add(display, BorderLayout.NORTH);
 
         historyArea = new JTextArea();
         historyArea.setEditable(false);
+        historyArea.setBackground(Color.BLACK);
+        historyArea.setForeground(Color.LIGHT_GRAY);
         frame.add(new JScrollPane(historyArea), BorderLayout.SOUTH);
 
         panel = new JPanel(new GridLayout(6, 4, 5, 5));
+        panel.setBackground(background);
         numButtons = new JButton[10];
         for (int i = 0; i < 10; i++) {
-            numButtons[i] = new JButton(String.valueOf(i));
+            numButtons[i] = styledButton(String.valueOf(i), font, Color.GRAY, textColor);
         }
 
         opButtons = new JButton[]{
-            new JButton("+"), new JButton("-"), new JButton("*"), new JButton("/"),
-            new JButton("("), new JButton(")")
+            styledButton("+", font, operatorColor, Color.BLACK),
+            styledButton("-", font, operatorColor, Color.BLACK),
+            styledButton("*", font, operatorColor, Color.BLACK),
+            styledButton("/", font, operatorColor, Color.BLACK),
+            styledButton("(", font, operatorColor, Color.BLACK),
+            styledButton(")", font, operatorColor, Color.BLACK)
         };
 
-        equals = new JButton("=");
-        clear = new JButton("C");
-        backspace = new JButton("<--");
-        dot = new JButton(".");
-        memoryStore = new JButton("MS");
-        memoryRecall = new JButton("MR");
-        memoryClear = new JButton("MC");
+        equals = styledButton("=", font, Color.GREEN, Color.BLACK);
+        clear = styledButton("C", font, operatorColor, Color.BLACK);
+        backspace = styledButton("<--", font, operatorColor, Color.BLACK);
+        dot = styledButton(".", font, Color.GRAY, textColor);
+        memoryStore = styledButton("MS", font, operatorColor, Color.BLACK);
+        memoryRecall = styledButton("MR", font, operatorColor, Color.BLACK);
+        memoryClear = styledButton("MC", font, operatorColor, Color.BLACK);
 
         JButton[] allButtons = {
             numButtons[7], numButtons[8], numButtons[9], opButtons[0],
@@ -152,12 +167,18 @@ class CalculatorView {
             memoryStore, memoryRecall, memoryClear
         };
 
-        for (JButton b : allButtons) {
-            panel.add(b);
-        }
+        for (JButton b : allButtons) panel.add(b);
 
         frame.add(panel, BorderLayout.CENTER);
         frame.setVisible(true);
+    }
+
+    private JButton styledButton(String text, Font font, Color bg, Color fg) {
+        JButton button = new JButton(text);
+        button.setFont(font);
+        button.setBackground(bg);
+        button.setForeground(fg);
+        return button;
     }
 }
 
@@ -180,9 +201,8 @@ class CalculatorController {
         view.dot.addActionListener(e -> view.display.setText(view.display.getText() + "."));
 
         view.equals.addActionListener(e -> {
-            String expr = view.display.getText();
-            String result = model.evaluate(expr);
-            view.historyArea.append(expr + " = " + result + "\n");
+            String result = model.evaluate(view.display.getText());
+            view.historyArea.append(view.display.getText() + " = " + result + "\n");
             view.display.setText(result);
         });
 
@@ -190,8 +210,7 @@ class CalculatorController {
 
         view.backspace.addActionListener(e -> {
             String text = view.display.getText();
-            if (!text.isEmpty())
-                view.display.setText(text.substring(0, text.length() - 1));
+            if (!text.isEmpty()) view.display.setText(text.substring(0, text.length() - 1));
         });
 
         view.memoryStore.addActionListener(e -> {
